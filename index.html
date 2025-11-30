@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="uk" class="h-full scroll-smooth dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Лендінг проєкту Fraud Detection (необанки). Архітектура, фічі та розділ з UML діаграмами." />
+  <title>Fraud Detection • Landing</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          boxShadow: {
+            soft: '0 10px 30px rgba(0,0,0,0.10)',
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root{ --header-h: 76px; }
+    html{ scroll-padding-top: calc(var(--header-h) + 12px); }
+    body{ margin: 0; padding-top: var(--header-h); }
+    section{ scroll-margin-top: calc(var(--header-h) + 12px); }
+
+    /* Tiny extras without fighting Tailwind */
+    .glass { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .ring-gradient { position: relative; }
+    .ring-gradient::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 24px;
+      background: conic-gradient(from 180deg, rgba(34,211,238,.9), rgba(59,130,246,.9), rgba(34,211,238,.9));
+      filter: blur(8px);
+      opacity: .55;
+      z-index: -1;
+    }
+    .reveal { opacity: 1; transform: none; }
+    .will-reveal { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+    .will-reveal.revealed { opacity: 1; transform: translateY(0); }
+    .focus-ring:focus-visible { outline: 2px solid rgba(34,211,238,.9); outline-offset: 2px; }
+  </style>
+</head>
+
+<body class="h-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-cyan-300/30 selection:text-slate-900 dark:text-slate-100">
+  <!-- Background glow -->
+  <div aria-hidden="true" class="pointer-events-none fixed inset-0">
+    <div class="absolute -top-32 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl"></div>
+    <div class="absolute top-24 left-10 h-[280px] w-[280px] rounded-full bg-blue-500/10 blur-3xl"></div>
+    <div class="absolute bottom-10 right-10 h-[360px] w-[360px] rounded-full bg-sky-500/10 blur-3xl"></div>
+  </div>
+
+  <!-- Top bar -->
+  <header class="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-slate-950/70 glass">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <a href="#home" class="focus-ring inline-flex items-center gap-2 rounded-xl px-2 py-1">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-white dark:bg-white/5 ring-1 ring-slate-200 dark:ring-white/10">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-cyan-300">
+            <path d="M4 13.5V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 20h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 20v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M7 13.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <div class="leading-tight">
+          <div class="text-sm font-semibold">NeoFraud Guard</div>
+          <div class="text-xs text-slate-800 dark:text-slate-300">Fraud Detection for Neobanks</div>
+        </div>
+      </a>
+
+      <nav class="hidden items-center gap-6 text-sm text-slate-800 dark:text-slate-200 md:flex">
+        <a class="focus-ring rounded-lg px-2 py-1 hover:text-slate-950 dark:hover:text-white" href="#problem">Проблема</a>
+        <a class="focus-ring rounded-lg px-2 py-1 hover:text-slate-950 dark:hover:text-white" href="#solution">Рішення</a>
+        <a class="focus-ring rounded-lg px-2 py-1 hover:text-slate-950 dark:hover:text-white" href="#flow">Flow</a>
+        <a class="focus-ring rounded-lg px-2 py-1 hover:text-slate-950 dark:hover:text-white" href="#architecture">Архітектура</a>
+        <a class="focus-ring rounded-lg px-2 py-1 hover:text-slate-950 dark:hover:text-white" href="#metrics">Метрики</a>
+        <a class="focus-ring rounded-lg px-2 py-1 hover:text-slate-950 dark:hover:text-white" href="#cta">Результати</a>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <button id="themeBtn" class="focus-ring inline-flex items-center gap-2 rounded-xl bg-slate-900/5 dark:bg-white/5 px-3 py-2 text-xs text-slate-800 dark:text-slate-200 ring-1 ring-slate-200 dark:ring-white/10 hover:bg-white/40 dark:hover:bg-white/10" type="button" aria-label="Перемкнути тему">
+          <span id="themeIcon" aria-hidden="true">🌙</span>
+          <span class="hidden sm:inline">Тема</span>
+        </button>
+
+        <button id="mobileBtn" class="focus-ring inline-flex items-center justify-center rounded-xl bg-slate-900/5 dark:bg-white/5 p-2 ring-1 ring-slate-200 dark:ring-white/10 hover:bg-white/40 dark:hover:bg-white/10 md:hidden" type="button" aria-label="Відкрити меню" aria-controls="mobileMenu" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-slate-800 dark:text-slate-200">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobileMenu" class="hidden border-t border-slate-200 dark:border-white/10 md:hidden">
+      <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 text-sm">
+        <a class="focus-ring rounded-lg px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5" href="#problem">Проблема</a>
+        <a class="focus-ring rounded-lg px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5" href="#solution">Рішення</a>
+        <a class="focus-ring rounded-lg px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5" href="#flow">Flow</a>
+        <a class="focus-ring rounded-lg px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5" href="#architecture">Архітектура</a>
+        <a class="focus-ring rounded-lg px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5" href="#metrics">Метрики</a>
+        <a class="focus-ring rounded-lg px-2 py-2 hover:bg-slate-100 dark:hover:bg-white/5" href="#cta">Результати</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main id="home" class="relative">
+    <!-- Hero -->
+    <section class="mx-auto max-w-6xl px-4 pt-14 pb-10 md:pt-20">
+      <div class="grid items-center gap-10 md:grid-cols-12">
+        <div class="md:col-span-7">
+          <div class="reveal inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-white/5 px-3 py-1 text-xs text-slate-800 dark:text-slate-200 ring-1 ring-slate-200 dark:ring-white/10">
+            <span class="inline-block h-2 w-2 rounded-full bg-cyan-300"></span>
+            Проєкт для виявлення шахрайських транзакцій у необанках
+          </div>
+          <h1 class="reveal mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white md:text-5xl">
+            Fraud Detection, який <span class="text-cyan-300">пояснює</span> рішення
+            і <span class="text-sky-300">масштабується</span>
+          </h1>
+          <p class="reveal mt-4 max-w-xl text-base leading-relaxed text-slate-900 dark:text-slate-200 md:text-lg">
+            Виявляє підозрілі транзакції та допомагає діяти швидко.
+            Скоринг, правила і кейс-менеджмент в одному потоці.
+          </p>
+
+          <div class="reveal mt-6 flex flex-col gap-3 sm:flex-row">
+            <a href="#advantages" class="focus-ring inline-flex items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-soft hover:bg-cyan-300">
+              Дізнатись переваги <span aria-hidden="true" class="ml-2">→</span>
+            </a>
+            <a href="#metrics" class="focus-ring inline-flex items-center justify-center rounded-2xl bg-white/90 dark:bg-white/5 px-5 py-3 text-sm font-semibold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-white/10 hover:bg-white dark:hover:bg-white/10">
+              Перейти до метрик
+            </a>
+          </div>
+
+          <div class="reveal mt-8 grid gap-3 sm:grid-cols-3">
+            <div class="rounded-2xl bg-white dark:bg-white/5 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+              <div class="text-xs text-slate-800 dark:text-slate-300">Низька латентність</div>
+              <div class="mt-1 text-lg font-semibold">near real-time</div>
+            </div>
+            <div class="rounded-2xl bg-white dark:bg-white/5 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+              <div class="text-xs text-slate-800 dark:text-slate-300">Пояснюваність</div>
+              <div class="mt-1 text-lg font-semibold">reason codes</div>
+            </div>
+            <div class="rounded-2xl bg-white dark:bg-white/5 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+              <div class="text-xs text-slate-800 dark:text-slate-300">Контроль якості</div>
+              <div class="mt-1 text-lg font-semibold">monitoring</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="md:col-span-5">
+          <div class="reveal ring-gradient rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 shadow-soft">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="text-sm font-semibold">Decision Snapshot</div>
+                <div class="mt-1 text-xs text-slate-800 dark:text-slate-300">Приклад виходу скорингу (демо)</div>
+              </div>
+              <div class="rounded-2xl bg-white dark:bg-slate-950/60 px-3 py-1 text-xs text-slate-800 dark:text-slate-200 ring-1 ring-slate-200 dark:ring-white/10">TX-29381</div>
+            </div>
+
+            <div class="mt-5 grid gap-3">
+              <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/50 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="flex items-center justify-between">
+                  <div class="text-xs text-slate-800 dark:text-slate-300">Risk score</div>
+                  <div class="text-xs text-slate-800 dark:text-slate-300">0–100</div>
+                </div>
+                <div class="mt-2 flex items-center gap-3">
+                  <div class="text-3xl font-semibold text-slate-950 dark:text-white">78</div>
+                  <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10">
+                    <div class="h-full w-[78%] rounded-full bg-cyan-300"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/50 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-xs text-slate-800 dark:text-slate-300">Top signals</div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">device mismatch</span>
+                  <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">velocity spike</span>
+                  <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">geo anomaly</span>
+                  <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">new recipient</span>
+                </div>
+              </div>
+
+              <div class="rounded-2xl bg-slate-50 dark:bg-slate-950/50 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-xs text-slate-800 dark:text-slate-300">Decision</div>
+                    <div class="mt-1 text-lg font-semibold">Challenge</div>
+                  </div>
+                  <div class="rounded-2xl bg-cyan-300/15 px-3 py-2 text-xs text-cyan-700 dark:text-cyan-200 ring-1 ring-cyan-300/30">Step-up auth</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-5 text-xs text-slate-700 dark:text-slate-400">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Problem -->
+    <section id="problem" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal grid gap-6 rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:grid-cols-3 md:p-8">
+        <div class="md:col-span-1">
+          <h2 class="text-xl font-semibold">Чому це важливо</h2>
+          <p class="mt-2 text-sm leading-relaxed text-slate-900 dark:text-slate-200">
+            Шахрайство еволюціонує швидше, ніж ручні правила. Необанкам потрібні рішення, які одночасно швидкі,
+            точні та пояснювані — щоб команда ризиків могла діяти.
+          </p>
+        </div>
+
+        <div class="space-y-3 md:col-span-2">
+          <div class="flex gap-3 rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="mt-1 h-8 w-8 shrink-0 rounded-2xl bg-cyan-300/15 ring-1 ring-cyan-300/20 flex items-center justify-center text-cyan-300">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-5 w-5">
+                <path d="M12 3v18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M5 7h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M7 7l-3 6h6L7 7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <path d="M17 7l-3 6h6l-3-6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <path d="M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold">Тонкий баланс</div>
+              <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Знизити втрати і не «вбити» конверсію через фолси.</div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="mt-1 h-8 w-8 shrink-0 rounded-2xl bg-sky-300/15 ring-1 ring-sky-300/20 flex items-center justify-center text-sky-300">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-5 w-5">
+                <path d="M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M7 20V12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M12 20V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M17 20V6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M6.2 10.6l4.4-2.2 3.2 2.1 4.0-3.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold">Неврівноважені дані</div>
+              <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Fraud — рідкісний клас, потрібні правильні метрики та підхід.</div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="mt-1 h-8 w-8 shrink-0 rounded-2xl bg-blue-300/15 ring-1 ring-blue-300/20 flex items-center justify-center text-blue-300">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-5 w-5">
+                <path d="M12 3l7 4v6c0 4.5-3 7.7-7 8.9C8 20.7 5 17.5 5 13V7l7-4Z"
+                      stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <path d="M8.5 12.5l2.2 2.2 4.8-5"
+                      stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold">Аудит і відповідність</div>
+              <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Потрібні трасування рішень, логування та контроль доступу.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Solution -->
+    <section id="solution" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="grid gap-8 md:grid-cols-12">
+        <div class="md:col-span-5">
+          <div class="reveal">
+            <h2 class="text-2xl font-semibold">Як працює система</h2>
+            <p class="mt-2 text-sm leading-relaxed text-slate-900 dark:text-slate-200">
+              Потік побудований так, щоб чітко показувати весь процес: від події транзакції й контексту — до скорингу, рішення та подальшої роботи з кейсами.
+            </p>
+            <div class="mt-6 space-y-3">
+              <div class="rounded-2xl bg-white dark:bg-white/5 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-xs text-slate-800 dark:text-slate-300">1) Ingest</div>
+                <div class="mt-1 font-semibold">Події транзакцій та контекст</div>
+                <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Транзакція + сесія + девайс + гео + історія користувача.</div>
+              </div>
+              <div class="rounded-2xl bg-white dark:bg-white/5 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-xs text-slate-800 dark:text-slate-300">2) Enrich & Features</div>
+                <div class="mt-1 font-semibold">Фічі та агрегати</div>
+                <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Velocity, профілі, чорні списки, аномалії.</div>
+              </div>
+              <div class="rounded-2xl bg-white dark:bg-white/5 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-xs text-slate-800 dark:text-slate-300">3) Score & Decide</div>
+                <div class="mt-1 font-semibold">ML + правила</div>
+                <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Єдина точка рішення: allow / challenge / block.</div>
+              </div>
+              <div class="rounded-2xl bg-white dark:bg-white/5 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-xs text-slate-800 dark:text-slate-300">4) Case Management</div>
+                <div class="mt-1 font-semibold">Алерти, кейси, фідбек</div>
+                <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Маршрутизація, ручна перевірка, зворотний зв’язок у навчання.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="md:col-span-7">
+          <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 shadow-soft md:p-8">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold">Ключові можливості</h3>
+              <span class="rounded-full bg-cyan-300/15 px-3 py-1 text-xs text-cyan-700 dark:text-cyan-200 ring-1 ring-cyan-300/30">Production-ready</span>
+            </div>
+
+            <div class="mt-6 grid gap-4 sm:grid-cols-2">
+              <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-sm font-semibold">Explainability</div>
+                <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Чіткі причини рішення (signals / rules hit / feature contributions).</p>
+              </div>
+              <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-sm font-semibold">Monitoring</div>
+                <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Дріфт, стабільність фіч, якість алертів, SLA.</p>
+              </div>
+              <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-sm font-semibold">Human-in-the-loop</div>
+                <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Кейси для аналітиків + фідбек у правила/модель.</p>
+              </div>
+              <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+                <div class="text-sm font-semibold">Audit-ready</div>
+                <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Трасування рішень і збереження контексту для перевірок.</p>
+              </div>
+            </div>
+
+            <div class="mt-6 rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+              <div class="text-xs text-slate-800 dark:text-slate-300">Domain model (приклад)</div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Transaction</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Customer</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Device</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">FeatureVector</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Model</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Rule</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Decision</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Alert</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Case</span>
+                <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Investigator</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Advantages -->
+    <section id="advantages" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal">
+        <h2 class="text-2xl font-semibold">Переваги системи</h2>
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-cyan-300/15 ring-1 ring-cyan-300/20">
+              <svg class="h-5 w-5 text-cyan-300" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2" />
+                <path d="M12 1v4M12 19v4M23 12h-4M5 12H1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="text-sm font-semibold">Швидке виявлення шахрайства</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Виявлення підозрілих транзакцій у реальному часі.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky-300/15 ring-1 ring-sky-300/20">
+              <svg class="h-5 w-5 text-sky-300" viewBox="0 0 24 24" fill="none">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="text-sm font-semibold">Миттєва реакція</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Блокування загроз без затримок.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-300/15 ring-1 ring-blue-300/20">
+              <svg class="h-5 w-5 text-blue-300" viewBox="0 0 24 24" fill="none">
+                <path d="M1 12C2.67 7.33 7.33 4 12 4c4.67 0 9.33 3.33 11 8-1.67 4.67-6.33 8-11 8-4.67 0-9.33-3.33-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+              </svg>
+            </div>
+            <div class="text-sm font-semibold">Пояснюваність</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Чіткі пояснення кожного рішення моделі.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-300/15 ring-1 ring-indigo-300/20">
+              <svg class="h-5 w-5 text-indigo-300" viewBox="0 0 24 24" fill="none">
+                <path d="M5 8h14M19 8l-4 4M19 8l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M19 16H5M5 16l4-4M5 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="text-sm font-semibold">Гнучка інтеграція</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Легка інтеграція через API до ваших систем.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- End-to-end Flow -->
+    <section id="flow" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-8">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 class="text-2xl font-semibold">End-to-end Flow</h2>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">
+              Потік від події транзакції до рішення та кейсу: збір контексту, фічі, скоринг, правила, рішення та фідбек у модель.
+            </p>
+          </div>
+          <a href="#metrics" class="focus-ring inline-flex items-center justify-center rounded-2xl bg-white/90 dark:bg-white/5 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-white/10 hover:bg-white dark:hover:bg-white/10">
+            Перейти до метрик <span aria-hidden="true" class="ml-2">→</span>
+          </a>
+        </div>
+
+        <ol class="mt-6 grid gap-3 md:grid-cols-6">
+          <li class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">1) Ingest</div>
+            <div class="mt-1 text-sm font-semibold">Отримати подію</div>
+            <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Транзакція + контекст сесії.</div>
+          </li>
+          <li class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">2) Enrich</div>
+            <div class="mt-1 text-sm font-semibold">Збагачення</div>
+            <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">KYC, device, geo, історія.</div>
+          </li>
+          <li class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">3) Features</div>
+            <div class="mt-1 text-sm font-semibold">Фічі</div>
+            <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Velocity, агрегати, профілі.</div>
+          </li>
+          <li class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">4) Score</div>
+            <div class="mt-1 text-sm font-semibold">Скоринг</div>
+            <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">ML-модель + сигнали.</div>
+          </li>
+          <li class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">5) Decide</div>
+            <div class="mt-1 text-sm font-semibold">Рішення</div>
+            <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">allow / challenge / block.</div>
+          </li>
+          <li class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">6) Case & Feedback</div>
+            <div class="mt-1 text-sm font-semibold">Кейс + фідбек</div>
+            <div class="mt-1 text-sm text-slate-900 dark:text-slate-200">Алерт, розслідування, навчання.</div>
+          </li>
+        </ol>
+
+        <div class="mt-6 rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+          <div class="text-xs text-slate-800 dark:text-slate-300">Чому це важливо</div>
+          <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">
+            Потік робить рішення пояснюваним: видно, на якому кроці виник сигнал ризику і чому система запропонувала challenge або block.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section id="architecture" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-8">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 class="text-2xl font-semibold">Архітектура (з Component/Deployment)</h2>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Опис ключових модулів системи та того, як вони обмінюються даними під час обробки транзакції.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Boundary</span>
+            <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Control</span>
+            <span class="rounded-full bg-white dark:bg-white/5 px-3 py-1 text-xs ring-1 ring-slate-200 dark:ring-white/10">Entity</span>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">API Gateway (Boundary)</div>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Приймає події, викликає скоринг, повертає рішення у продукти/платежі.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Scoring Service (Control)</div>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Enrichment → features → модель/правила → decision + reason codes.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Case & Evidence Store (Entity)</div>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Зберігає алерти/кейси, журнал, контекст та докази для аудиту.</p>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Інтеграції</div>
+            <ul class="mt-2 space-y-2 text-sm text-slate-900 dark:text-slate-200">
+              <li class="flex gap-2"><span class="text-cyan-300">•</span> KYC/KYB, санкційні списки, device intelligence</li>
+              <li class="flex gap-2"><span class="text-cyan-300">•</span> Нотифікації (email/SMS/push), SIEM/лог-агрегація</li>
+              <li class="flex gap-2"><span class="text-cyan-300">•</span> Аналітика: дашборди, метрики якості, SLA</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Метрики (для роботи/захисту)</div>
+            <ul class="mt-2 space-y-2 text-sm text-slate-900 dark:text-slate-200">
+              <li class="flex gap-2"><span class="text-sky-300">•</span> Precision/Recall, PR-AUC, FPR@TPR</li>
+              <li class="flex gap-2"><span class="text-sky-300">•</span> Approval rate, false positives cost</li>
+              <li class="flex gap-2"><span class="text-sky-300">•</span> Latency p95/p99, throughput, drift</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Метрики -->
+    <section id="metrics" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-8">
+        <h2 class="text-2xl font-semibold">Реалістичні метрики якості</h2>
+        <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Метрики, що враховують як точність виявлення, так і бізнес-наслідки.</p>
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">PR-AUC</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Площа під PR-кривою — краща за ROC у випадку fraud (рідкісний клас).</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Cost of False Positives</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Грошова вартість помилкових блокувань для бізнесу.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Approval Rate</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Питома вага схвалених транзакцій — має бути збалансована з безпекою.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Що це дає бізнесу -->
+    <section id="business" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-8">
+        <h2 class="text-2xl font-semibold">Що це дає бізнесу</h2>
+        <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">
+          Ефект fraud detection варто формулювати через гроші, конверсію та операційні витрати — саме це найкраще “читається” на захисті та в реальних продуктах.
+        </p>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Зниження втрат</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Менше шахрайських списань і компенсацій.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Краща конверсія</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Менше помилкових відмов → більше оплат.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Менше навантаження</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Менше звернень у сапорт і ручних перевірок.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Аудит і довіра</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Reason codes і логування рішень для відповідності.</p>
+          </div>
+        </div>
+
+        
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-8">
+        <h2 class="text-2xl font-semibold">Часті запитання</h2>
+        <div class="mt-6 space-y-4">
+          <details class="group rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <summary class="cursor-pointer text-sm font-semibold group-open:text-cyan-400">Чим відрізняється ця система від правил?</summary>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Вона поєднує ML + правила і дозволяє оновлення без перекомпіляції.</p>
+          </details>
+          <details class="group rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <summary class="cursor-pointer text-sm font-semibold group-open:text-cyan-400">Як швидко система приймає рішення?</summary>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Під 100 мс на рішення в середньому (вимірюється latency p95/p99).</p>
+          </details>
+          <details class="group rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <summary class="cursor-pointer text-sm font-semibold group-open:text-cyan-400">Чи можу я інтегрувати систему з існуючим процесом?</summary>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">Так, через API (gateway), а також підтримка async/push каналів.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison -->
+    <section id="comparison" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-8">
+        <h2 class="text-2xl font-semibold">Порівняння з альтернативами</h2>
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full text-sm text-left">
+            <thead class="text-xs uppercase text-slate-500 dark:text-slate-400">
+              <tr>
+                <th class="px-4 py-2"></th>
+                <th class="px-4 py-2">NeoFraud Guard</th>
+                <th class="px-4 py-2">Традиційні правила</th>
+                <th class="px-4 py-2">Типова ML система</th>
+              </tr>
+            </thead>
+            <tbody class="text-slate-900 dark:text-slate-200">
+              <tr class="border-t border-slate-200 dark:border-white/10">
+                <td class="px-4 py-2 font-semibold">Пояснення рішень</td>
+                <td class="px-4 py-2">✓ Reason codes</td>
+                <td class="px-4 py-2">✗</td>
+                <td class="px-4 py-2">~ Частково</td>
+              </tr>
+              <tr class="border-t border-slate-200 dark:border-white/10">
+                <td class="px-4 py-2 font-semibold">Швидкість</td>
+                <td class="px-4 py-2">✓ &lt; 100 мс</td>
+                <td class="px-4 py-2">✓</td>
+                <td class="px-4 py-2">✗ Часто повільна</td>
+              </tr>
+              <tr class="border-t border-slate-200 dark:border-white/10">
+                <td class="px-4 py-2 font-semibold">Адаптивність</td>
+                <td class="px-4 py-2">✓ ML + правила + фідбек</td>
+                <td class="px-4 py-2">✗</td>
+                <td class="px-4 py-2">✓ Але потребує data science</td>
+              </tr>
+              <tr class="border-t border-slate-200 dark:border-white/10">
+                <td class="px-4 py-2 font-semibold">Вартість підтримки</td>
+                <td class="px-4 py-2">Низька</td>
+                <td class="px-4 py-2">Висока (ручне оновлення)</td>
+                <td class="px-4 py-2">Середня (ML pipelines)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Support -->
+    <section id="support" class="scroll-mt-20 mx-auto max-w-6xl px-4 py-10">
+      <div class="reveal rounded-3xl bg-white dark:bg-white/5 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-8">
+        <h2 class="text-2xl font-semibold">Підтримка та безпека</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Моніторинг 24/7</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Автоматичні оповіщення, дашборди, журнали подій та алертів.</p>
+          </div>
+          <div class="rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-sm font-semibold">Безпека даних</div>
+            <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">Шифрування, обмеження доступу, контроль ролей, логування дій.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta" class="scroll-mt-20 mx-auto max-w-6xl px-4 pt-10 pb-16">
+      <div class="reveal rounded-3xl bg-gradient-to-br from-cyan-300/10 via-slate-50 to-sky-300/10 dark:via-slate-950/60 p-6 ring-1 ring-slate-200 dark:ring-white/10 md:p-10">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 class="text-2xl font-semibold">Результати</h2>
+            <p class="mt-2 text-sm text-slate-900 dark:text-slate-200">
+              Вплив системи вимірюється не лише “точністю”, а балансом безпеки, досвіду користувача та часу відповіді.
+              Нижче — типові KPI, які варто показати у звіті/захисті.
+            </p>
+          </div>
+          <a href="#metrics" class="focus-ring inline-flex items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-soft hover:bg-cyan-300">
+            Перейти до метрик <span aria-hidden="true" class="ml-2">→</span>
+          </a>
+        </div>
+
+        <div class="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl bg-white dark:bg-slate-950/50 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">Fraud loss (оцінка)</div>
+            <div class="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">−25%</div>
+            <div class="mt-1 text-xs text-slate-700 dark:text-slate-400">Зниження втрат завдяки скорингу + правилам.</div>
+          </div>
+
+          <div class="rounded-2xl bg-white dark:bg-slate-950/50 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">False Positive Rate</div>
+            <div class="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">−18%</div>
+            <div class="mt-1 text-xs text-slate-700 dark:text-slate-400">Менше помилкових блокувань та алертів.</div>
+          </div>
+
+          <div class="rounded-2xl bg-white dark:bg-slate-950/50 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">Approval rate</div>
+            <div class="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">+4.2 п.п.</div>
+            <div class="mt-1 text-xs text-slate-700 dark:text-slate-400">Краща конверсія без втрати безпеки.</div>
+          </div>
+
+          <div class="rounded-2xl bg-white dark:bg-slate-950/50 p-5 ring-1 ring-slate-200 dark:ring-white/10">
+            <div class="text-xs text-slate-800 dark:text-slate-300">Latency p95</div>
+            <div class="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">85 мс</div>
+            <div class="mt-1 text-xs text-slate-700 dark:text-slate-400">Стабільний час відповіді під навантаженням.</div>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl bg-white dark:bg-slate-950/40 p-4 ring-1 ring-slate-200 dark:ring-white/10">
+          <div class="text-xs text-slate-800 dark:text-slate-300">Примітка</div>
+          <p class="mt-1 text-sm text-slate-900 dark:text-slate-200">
+            Значення вище — демонстраційні. 
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 dark:border-white/10">
+    <div class="mx-auto max-w-6xl px-4 py-10">
+      <div class="flex flex-col items-center justify-center gap-3">
+        <div class="w-full text-center text-sm text-slate-800 dark:text-slate-300">
+          © <span id="year"></span> NeoFraud Guard • Всі права захищено
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Year
+    document.getElementById('year').textContent = String(new Date().getFullYear());
+
+    // Theme toggle (dark/light)
+    const root = document.documentElement;
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+      root.classList.toggle('dark', isDark);
+      if (themeIcon) themeIcon.textContent = isDark ? '🌙' : '☀️';
+    }
+
+    const savedTheme = localStorage.getItem('nf-theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const next = root.classList.contains('dark') ? 'light' : 'dark';
+        localStorage.setItem('nf-theme', next);
+        applyTheme(next);
+      });
+    }
+
+    // Fixed header height (for anchor offset)
+    const header = document.querySelector('header');
+    function syncHeaderHeight() {
+      if (!header) return;
+      const h = Math.ceil(header.getBoundingClientRect().height);
+      if (h > 0) document.documentElement.style.setProperty('--header-h', h + 'px');
+    }
+    syncHeaderHeight();
+    window.addEventListener('resize', syncHeaderHeight);
+
+    // Mobile menu
+    const mobileBtn = document.getElementById('mobileBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+
+    mobileBtn.addEventListener('click', () => {
+      const open = !mobileMenu.classList.contains('hidden');
+      mobileMenu.classList.toggle('hidden', open);
+      mobileBtn.setAttribute('aria-expanded', String(!open));
+      syncHeaderHeight();
+    });
+
+    // Close mobile menu on link click
+    mobileMenu?.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+        mobileBtn.setAttribute('aria-expanded', 'false');
+        syncHeaderHeight();
+      });
+    });
+
+    // UML tabs (data kept for можливе майбутнє використання)
+    const uml = {
+      usecase: {
+        title: 'Use Case',
+        img: 'assets/uml/use-case.png',
+        desc: 'Показує ролі (акторів) та основні сценарії: отримання подій, перевірка транзакції, створення алерту, робота з кейсом та інтеграції.'
+      },
+      class: {
+        title: 'Class',
+        img: 'assets/uml/class.png',
+        desc: 'Доменні сутності, їх атрибути/операції та зв’язки: Transaction, Customer, Device, Rule/Model, Alert/Case тощо.'
+      },
+      sequence: {
+        title: 'Sequence',
+        img: 'assets/uml/sequence.png',
+        desc: 'Порядок взаємодії компонентів: API → enrichment → scoring → rules → decision → alert/case.'
+      },
+      activity: {
+        title: 'Activity',
+        img: 'assets/uml/activity.png',
+        desc: 'Бізнес-процес від старту транзакції до рішення та подальших дій (ручна перевірка/блокування/підтвердження).'
+      },
+      component: {
+        title: 'Component',
+        img: 'assets/uml/component.png',
+        desc: 'Компоненти системи й залежності: ingestion, scoring, rules, storage, case management, monitoring.'
+      },
+      deployment: {
+        title: 'Deployment',
+        img: 'assets/uml/deployment.png',
+        desc: 'Розгортання: сервіси, бази даних, черги, інтеграції, мережеві зони/контури (якщо є).'
+      },
+    };
+
+    const umlImage = document.getElementById('umlImage');
+    const umlTitle = document.getElementById('umlTitle');
+    const umlDesc = document.getElementById('umlDesc');
+
+    function setActiveTab(key) {
+      const data = uml[key] || uml.usecase;
+      if (umlImage && umlTitle && umlDesc) {
+        umlImage.src = data.img;
+        umlTitle.textContent = data.title;
+        umlDesc.textContent = data.desc;
+
+        document.querySelectorAll('.uml-tab').forEach(btn => {
+          const isActive = btn.dataset.tab === key;
+          btn.setAttribute('aria-selected', String(isActive));
+          btn.classList.toggle('bg-white/10', isActive);
+          btn.classList.toggle('bg-white dark:bg-white/5', !isActive);
+        });
+      }
+    }
+
+    document.querySelectorAll('.uml-tab').forEach(btn => {
+      btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+    });
+
+    // Reveal on scroll
+    try {
+      if ('IntersectionObserver' in window) {
+        const revealEls = Array.from(document.querySelectorAll('.reveal'));
+        revealEls.forEach(el => el.classList.add('will-reveal'));
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(e => {
+            if (e.isIntersecting) e.target.classList.add('revealed');
+          });
+        }, { threshold: 0.12 });
+
+        revealEls.forEach(el => observer.observe(el));
+      }
+    } catch (e) {
+      console.warn('Reveal init failed:', e);
+      document.querySelectorAll('.reveal').forEach(el => el.classList.remove('will-reveal'));
+    }
+  </script>
+</body>
+</html>
